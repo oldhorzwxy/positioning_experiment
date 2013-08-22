@@ -9,36 +9,45 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
 
-import java.util.HashMap;
+import java.util.*;
 
 public class SettingActivity extends Activity {
 
-  private HashMap<String, LinearLayout> layoutMap;
+  private HashMap<String, SettingLine> layoutMap;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_setting);
 
+    LocationList.starList = new HashMap<String, Star>();
+
+    layoutMap = new HashMap<String, SettingLine>();
     for( int i = 21; i < 33; i++ ) {
       SettingLine line = new SettingLine( this, "8765432" + i );
       ((ViewGroup) findViewById( R.id.root ) ).addView( line );
+      layoutMap.put("876543"+ i, line);
     }
 
     Button button = (Button) findViewById(R.id.save);
     button.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
-
+        Iterator<String> keySet = layoutMap.keySet().iterator();
+        while (keySet.hasNext()) {
+          String name = keySet.next();
+          if(layoutMap.get(name).getCheckBox().isChecked()){
+            SettingLine layout = layoutMap.get(name);
+            int x = layout.getInputX();
+            int y = layout.getInputY();
+            Star star = new Star(name, x, y);
+            LocationList.starList.put(name, star);
+          }
+        }
+        SettingActivity.this.setResult(RESULT_OK);
+        SettingActivity.this.finish();
       }
     });
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.setting, menu);
-		return true;
 	}
 
   class SettingLine extends LinearLayout {
@@ -79,10 +88,12 @@ public class SettingActivity extends Activity {
       x = new EditText(context);
       x.setHint("x\t\t\t\t\t");
       x.setInputType(InputType.TYPE_CLASS_NUMBER);
+      x.setEnabled(false);
       addView(x);
       y = new EditText(context);
       y.setHint("y\t\t\t\t\t");
       y.setInputType(InputType.TYPE_CLASS_NUMBER);
+      y.setEnabled(false);
       addView(y);
     }
 
@@ -108,27 +119,6 @@ public class SettingActivity extends Activity {
 
       }
       return result;
-    }
-  }
-
-  class Location {
-    private int x;
-    private int y;
-
-    int getX() {
-      return x;
-    }
-
-    void setX(int x) {
-      this.x = x;
-    }
-
-    int getY() {
-      return y;
-    }
-
-    void setY(int y) {
-      this.y = y;
     }
   }
 }

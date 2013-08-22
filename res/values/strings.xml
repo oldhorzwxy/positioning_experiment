@@ -9,5 +9,9 @@
     <string name="hint_y">y\t\t\t\t</string>
 
     <string name="setting_button">save</string>
+    <string name="locating">locate</string>
+    <string name="result">locating...</string>
+    <string name="set_stars">set stars</string>
+    <string name="quit">quit</string>
 
 </resources>
