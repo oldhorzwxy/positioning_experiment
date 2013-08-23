@@ -22,7 +22,7 @@ public class Star {
     setName(name);
     setX(x);
     setY(y);
-    setRssi(-100);
+    setRssi(0);
   }
 
   public int getX() {

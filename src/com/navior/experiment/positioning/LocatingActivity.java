@@ -19,6 +19,7 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Bundle;
 import android.os.Handler;
@@ -31,6 +32,10 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import com.samsung.android.sdk.bt.gatt.*;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,6 +47,11 @@ public class LocatingActivity extends Activity {
   private Handler handler;
   private Locator locator;
   private List<DrawPoint> orderedList;
+  private HashMap<String, Star> starMap;
+
+  private boolean hasResult = false;
+  private int resultX;
+  private int resultY;
 
   MapGraph m;
 
@@ -52,6 +62,9 @@ public class LocatingActivity extends Activity {
 
     handler = new Handler();
     orderedList = new ArrayList<DrawPoint>();
+
+    starMap = new HashMap<String, Star>();
+
 
     Button set_stars = (Button) findViewById(R.id.set_stars);
     set_stars.setOnClickListener(new View.OnClickListener() {
@@ -68,6 +81,14 @@ public class LocatingActivity extends Activity {
         locator.startLocating();
       }
     });
+    Button clear = (Button) findViewById(R.id.clear);
+    clear.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        orderedList.clear();
+        m.postInvalidate();
+      }
+    });
     Button quit = (Button)findViewById(R.id.quit);
     quit.setOnClickListener(new View.OnClickListener() {
       @Override
@@ -82,13 +103,27 @@ public class LocatingActivity extends Activity {
 
   @Override
   protected void onResume() {
-    super.onResume();    //TODO Need to call my father?
-  }
+    super.onResume();
 
-  @Override
-  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    List<Star> starList = new ArrayList<Star>( LocationList.starList.values() );
-    locator = new Locator(starList);
+    try {
+      BufferedReader reader = new BufferedReader(new InputStreamReader( openFileInput("stars") ) );
+      while (reader.ready()){
+        String line = reader.readLine();
+        String[] parts = line.split(" ");
+        String name = parts[0];
+        String x = parts[1];
+        String y = parts[2];
+        starMap.put(name, new Star(name, Integer.parseInt(x), Integer.parseInt(y)));
+      }
+      reader.close();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();  //TODO
+    } catch (IOException e) {
+      e.printStackTrace();  //TODO
+    }
+
+    locator = new Locator();
+    m.postInvalidate();
   }
 
   class ResultTable extends TableLayout {
@@ -167,10 +202,11 @@ public class LocatingActivity extends Activity {
       }
     };
 
-    Locator(List<Star> starList) {
+    Locator() {
       this.rssiMap = new HashMap<String, ArrayList< RssiRecord >>();
-      for(int i = 0; i < starList.size(); i++) {
-        rssiMap.put(starList.get(i).getName(), new ArrayList<RssiRecord>());
+      Iterator<String> iterator = starMap.keySet().iterator();
+      while(iterator.hasNext()) {
+        rssiMap.put(iterator.next(), new ArrayList<RssiRecord>());
       }
       mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
       if( !mBluetoothAdapter.isEnabled() ) {
@@ -203,7 +239,7 @@ public class LocatingActivity extends Activity {
       Iterator<String> iterator = rssiMap.keySet().iterator();
       while (iterator.hasNext()) {
         String name = iterator.next();
-        if(!LocationList.starList.containsKey(name)){
+        if(!starMap.containsKey(name)){
           continue;
         }
         List<RssiRecord> list = rssiMap.get(name);
@@ -215,7 +251,7 @@ public class LocatingActivity extends Activity {
         if( (int)average == 0 ) {
           average = -100;
         }
-        Star s = LocationList.starList.get(name);
+        Star s = starMap.get(name);
         DrawPoint point = new DrawPoint();
         point.x = s.getX();
         point.y = s.getY();
@@ -275,10 +311,10 @@ public class LocatingActivity extends Activity {
 
   class MapGraph extends View {
 
-    private final static int MAX_X = 1920;
-    private final static int MAX_Y = 1080;
-    private final static int MARGIN_X = 50;
-    private final static int MARGIN_Y = 50;
+    private final static int MAX_Y = 1920;
+    private final static int MAX_X = 1080;
+    private final static int PADDING_X = 40;
+    private final static int PADDING_Y = 50;
 
     private final static int MAX_COLUMN = 10;
     private final static int MAX_ROW = 20;
@@ -307,12 +343,27 @@ public class LocatingActivity extends Activity {
         canvas.drawText("" + i, 10, MARGIN_Y + i * BLOCK_SIZE - 5, painter);
       }
 
+      int max = -100;
+      for(int i = 0; i < orderedList.size(); i++) {
+         if(orderedList.get(i).rssi > max) {
+           max = orderedList.get(i).rssi;
+         }
+      }
+
       for(int i = 0; i < orderedList.size(); i++) {
         DrawPoint p = orderedList.get(i);
         Paint paint = new Paint();
+        canvas.drawCircle(MARGIN_X + p.x * BLOCK_SIZE / 100, MARGIN_Y + p.y * BLOCK_SIZE / 100, 3, paint);
+        canvas.drawText(p.label + "/" + p.rssi, MARGIN_X + p.x * BLOCK_SIZE / 100 + 20, MARGIN_Y + p.y * BLOCK_SIZE / 100 + 20, paint );
         paint.setStyle(Paint.Style.STROKE);
-        canvas.drawCircle(p.x * BLOCK_SIZE / 100, p.y * BLOCK_SIZE / 100, p.r * BLOCK_SIZE / 100, paint);
-        canvas.drawText(p.label + "/" + p.rssi, p.x * BLOCK_SIZE / 100 + 20, p.y * BLOCK_SIZE / 100 + 20, paint );
+        if( p.rssi == max ) {
+          paint.setColor(Color.RED);
+        }
+        canvas.drawCircle(MARGIN_X + p.x * BLOCK_SIZE / 100, MARGIN_Y + p.y * BLOCK_SIZE / 100, p.r * BLOCK_SIZE / 100, paint);
+      }
+
+      if( hasResult ) {
+
       }
     }
   }

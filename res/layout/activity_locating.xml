@@ -4,21 +4,36 @@
               android:orientation="vertical"
               android:layout_width="match_parent"
               android:layout_height="match_parent">
-    <Button
-        android:id="@+id/set_stars"
-        android:layout_width="match_parent"
+    <LinearLayout
         android:layout_height="wrap_content"
-        android:text="@string/set_stars"/>
-    <Button
-        android:id="@+id/start_locating"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/locating"/>
-    <Button
-        android:id="@+id/quit"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/quit"/>
+        android:orientation="horizontal">
+
+        <Button
+                android:id="@+id/set_stars"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/set_stars"/>
+        <Button
+                android:id="@+id/start_locating"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/locating"/>
+        <Button
+                android:id="@+id/clear"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="clear"/>
+        <Button
+                android:id="@+id/quit"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/quit"/>
+        </LinearLayout>
 
     <LinearLayout
         android:id="@+id/result_area"
